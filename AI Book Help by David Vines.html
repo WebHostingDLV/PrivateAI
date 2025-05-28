@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Weaver AI: Outline & Chapter Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for webkit browsers */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #2d3748; /* slate-800 */
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4a5568; /* slate-600 */
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #718096; /* slate-500 */
+        }
+        .loader {
+            border: 4px solid #4a5568; /* slate-600 */
+            border-top: 4px solid #60a5fa; /* sky-400 */
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .tab-button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+            border: 1px solid transparent;
+        }
+        .tab-button.active {
+            background-color: #0ea5e9; /* sky-600 */
+            color: white;
+            border-color: #0284c7; /* sky-700 */
+        }
+        .tab-button:not(.active) {
+            background-color: #334155; /* slate-700 */
+            color: #cbd5e1; /* slate-300 */
+        }
+         .tab-button:not(.active):hover {
+            background-color: #475569; /* slate-600 */
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        textarea {
+            scrollbar-width: thin;
+            scrollbar-color: #4a5568 #2d3748;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gradient-to-br from-slate-900 to-slate-800 text-white min-h-screen flex flex-col items-center p-4 selection:bg-sky-500 selection:text-white">
+
+    <div class="bg-slate-800 shadow-2xl rounded-xl p-6 md:p-8 w-full max-w-3xl transform transition-all duration-500">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-sky-400">Book Weaver AI 📚</h1>
+            <p class="text-slate-400 mt-2">Outline, Draft, and Assemble Your Next Book</p>
+        </header>
+
+        <div class="mb-6 flex space-x-2 sm:space-x-4 border-b border-slate-700 pb-3 justify-center">
+            <button class="tab-button active" onclick="openTab(event, 'planTab')">1. Plan Your Book</button>
+            <button class="tab-button" onclick="openTab(event, 'writeTab')">2. Write Chapters</button>
+            <button class="tab-button" onclick="openTab(event, 'assembleTab')">3. Assemble Manuscript</button>
+        </div>
+
+        <div id="planTab" class="tab-content active">
+            <h2 class="text-2xl font-semibold text-sky-500 mb-4">Book Concept & Outline</h2>
+            <div class="space-y-5">
+                <div>
+                    <label for="outlineBookTitle" class="block text-sm font-medium text-slate-300 mb-1">Book Title <span class="text-red-500">*</span></label>
+                    <input type="text" id="outlineBookTitle" placeholder="e.g., Chronicles of Aethelgard" required
+                           class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-colors">
+                </div>
+                <div>
+                    <label for="outlineGenre" class="block text-sm font-medium text-slate-300 mb-1">Genre <span class="text-red-500">*</span></label>
+                    <input type="text" id="outlineGenre" placeholder="e.g., Epic Fantasy, Sci-Fi Thriller, Historical Non-Fiction" required
+                           class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-colors">
+                </div>
+                <div>
+                    <label for="outlinePremise" class="block text-sm font-medium text-slate-300 mb-1">Book Premise / Synopsis (2-4 sentences) <span class="text-red-500">*</span></label>
+                    <textarea id="outlinePremise" rows="3" placeholder="Briefly describe the main plot, key characters, and central conflict or theme." required
+                              class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-colors resize-none"></textarea>
+                </div>
+                <button id="generateOutlineButton"
+                        class="w-full bg-sky-600 hover:bg-sky-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-opacity-50 transform hover:scale-105 active:scale-95">
+                    ✨ Generate Book Outline
+                </button>
+                <div id="outlineLoadingIndicator" class="loader hidden my-4"></div>
+                <div id="outlineMessageArea" class="mt-3 text-center text-red-400"></div>
+                <div class="mt-6">
+                    <h3 class="text-xl font-semibold text-sky-400 mb-2">Generated Outline:</h3>
+                    <div id="outlineDisplay" class="bg-slate-700 p-4 rounded-lg border border-slate-600 min-h-[150px] text-slate-200 whitespace-pre-wrap overflow-y-auto max-h-[400px]">
+                        Your AI-generated book outline will appear here...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="writeTab" class="tab-content">
+            <h2 class="text-2xl font-semibold text-sky-500 mb-4">Chapter Content Generation</h2>
+            <div class="space-y-5">
+                 <div>
+                    <label for="chapterBookTitle" class="block text-sm font-medium text-slate-300 mb-1">Book Title (from Plan section or manual)</label>
+                    <input type="text" id="chapterBookTitle" name="chapterBookTitle" placeholder="e.g., The Last Stargazer"
+                           class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-colors">
+                </div>
+                <div>
+                    <label for="chapterTitle" class="block text-sm font-medium text-slate-300 mb-1">Chapter Title <span class="text-red-500">*</span></label>
+                    <input type="text" id="chapterTitle" name="chapterTitle" placeholder="e.g., Whispers from the Void (can be from outline)" required
+                           class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-colors">
+                </div>
+                 <div>
+                    <label for="chapterContext" class="block text-sm font-medium text-slate-300 mb-1">Chapter's Role / Summary (from outline, optional)</label>
+                    <textarea id="chapterContext" name="chapterContext" rows="2" placeholder="Brief summary of this chapter's purpose from your outline."
+                              class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-colors resize-none"></textarea>
+                </div>
+                <div>
+                    <label for="chapterPrompt" class="block text-sm font-medium text-slate-300 mb-1">Detailed Chapter Prompt / Key Points for this Snippet <span class="text-red-500">*</span></label>
+                    <textarea id="chapterPrompt" name="chapterPrompt" rows="5" placeholder="Describe what this specific snippet/section should cover: key events, characters, dialogue, desired tone, specific details to include, etc." required
+                              class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-colors resize-none"></textarea>
+                </div>
+                <button id="generateChapterButton"
+                        class="w-full bg-sky-600 hover:bg-sky-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-opacity-50 transform hover:scale-105 active:scale-95">
+                    ✨ Generate Chapter Content
+                </button>
+                <div id="chapterLoadingIndicator" class="loader hidden my-4"></div>
+                <div id="chapterMessageArea" class="mt-3 text-center text-red-400"></div>
+
+                <div class="mt-6 border-t border-slate-700 pt-6">
+                    <h3 class="text-xl font-semibold text-indigo-400 mb-3">Need Inspiration?</h3>
+                    <button id="suggestPlotIdeasButton"
+                            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 transform hover:scale-105 active:scale-95">
+                        ✨ Suggest Plot Ideas/Twists
+                    </button>
+                    <div id="plotIdeasLoadingIndicator" class="loader hidden my-4"></div>
+                    <div id="plotIdeasMessageArea" class="mt-3 text-center text-red-400"></div>
+                    <div id="plotIdeasDisplay" class="mt-4 bg-slate-700 p-4 rounded-lg border border-slate-600 min-h-[100px] text-slate-200 whitespace-pre-wrap overflow-y-auto max-h-[300px] hidden">
+                        AI-suggested plot ideas will appear here...
+                    </div>
+                </div>
+                
+                <div class="mt-6">
+                    <h3 class="text-xl font-semibold text-sky-400 mb-2">Generated Chapter Snippet:</h3>
+                    <div id="snippetDisplay" class="bg-slate-700 p-4 rounded-lg border border-slate-600 min-h-[150px] text-slate-200 whitespace-pre-wrap overflow-y-auto max-h-[400px]">
+                        Your AI-generated chapter content will appear here...
+                    </div>
+                    <button id="copySnippetButton" class="mt-3 bg-slate-600 hover:bg-slate-500 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-slate-400 hidden">
+                        Copy Snippet
+                    </button>
+                    <div id="copySnippetMessage" class="text-center text-green-400 mt-1"></div>
+
+                    <div id="elaborationSection" class="mt-4 border-t border-slate-700 pt-4 hidden">
+                        <label for="elaborationPromptInput" class="block text-sm font-medium text-slate-300 mb-1">How to elaborate on the snippet above?</label>
+                        <textarea id="elaborationPromptInput" rows="2" placeholder="e.g., Add more dialogue between X and Y, Describe the character's fear, Expand on the setting details."
+                                  class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-colors resize-none"></textarea>
+                        <button id="elaborateSnippetButton"
+                                class="mt-2 w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-50 transform hover:scale-105 active:scale-95">
+                            ✨ Elaborate on Snippet
+                        </button>
+                        <div id="elaborateLoadingIndicator" class="loader hidden my-4"></div>
+                        <div id="elaborateMessageArea" class="mt-3 text-center text-red-400"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="assembleTab" class="tab-content">
+            <h2 class="text-2xl font-semibold text-sky-500 mb-4">Assemble Your Manuscript</h2>
+            <p class="text-slate-400 mb-3 text-sm">
+                Copy and paste your generated (and edited!) chapter snippets here. Add transitions, refine the narrative, and build your complete book.
+                This is your author's workspace.
+            </p>
+            <textarea id="manuscriptArea" rows="20" placeholder="Start assembling your book here..."
+                      class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-colors resize-y"></textarea>
+            <p class="text-xs text-slate-500 mt-2">Content in this area is not saved automatically by this demo app. Copy it to a separate document to save your work.</p>
+        </div>
+
+    </div>
+
+    <footer class="text-center text-slate-500 mt-10 text-sm">
+        <p>&copy; 2024 Book Weaver AI. Your creative partner in book writing.</p>
+        <p class="mt-1">Remember: AI provides drafts. You provide the authorship, vision, and polish!</p>
+    </footer>
+
+    <script>
+        // Tab switching logic
+        function openTab(evt, tabName) {
+            let i, tabcontent, tabbuttons;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+                tabcontent[i].classList.remove("active");
+            }
+            tabbuttons = document.getElementsByClassName("tab-button");
+            for (i = 0; i < tabbuttons.length; i++) {
+                tabbuttons[i].classList.remove("active");
+            }
+            document.getElementById(tabName).style.display = "block";
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+
+            if (tabName === 'writeTab') {
+                const outlineBookTitleVal = document.getElementById('outlineBookTitle').value;
+                if (outlineBookTitleVal) {
+                    document.getElementById('chapterBookTitle').value = outlineBookTitleVal;
+                }
+            }
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            const firstTabButton = document.querySelector('.tab-button');
+            if (firstTabButton) {
+                 firstTabButton.click();
+            }
+        });
+
+        // --- Helper function to check if display has meaningful content ---
+        function hasActualContent(element) {
+            const placeholderTexts = [
+                'Your AI-generated book outline will appear here...',
+                'Your AI-generated chapter content will appear here...',
+                'Generating your book outline...',
+                'Generating your chapter content...',
+                'AI-suggested plot ideas will appear here...',
+                'Generating plot ideas...'
+            ];
+            return element && element.textContent.trim() && !placeholderTexts.includes(element.textContent.trim());
+        }
+
+        // --- Outline Generation ---
+        const outlineBookTitleInput = document.getElementById('outlineBookTitle');
+        const outlineGenreInput = document.getElementById('outlineGenre');
+        const outlinePremiseInput = document.getElementById('outlinePremise');
+        const generateOutlineButton = document.getElementById('generateOutlineButton');
+        const outlineLoadingIndicator = document.getElementById('outlineLoadingIndicator');
+        const outlineMessageArea = document.getElementById('outlineMessageArea');
+        const outlineDisplay = document.getElementById('outlineDisplay');
+
+        generateOutlineButton.addEventListener('click', generateBookOutline);
+
+        async function generateBookOutline() {
+            outlineMessageArea.textContent = '';
+            outlineDisplay.textContent = 'Generating your book outline...';
+            
+            if (!outlineBookTitleInput.value.trim() || !outlineGenreInput.value.trim() || !outlinePremiseInput.value.trim()) {
+                outlineMessageArea.textContent = 'Please fill in Book Title, Genre, and Premise for the outline.';
+                outlineDisplay.textContent = 'Your AI-generated book outline will appear here...';
+                return;
+            }
+
+            outlineLoadingIndicator.classList.remove('hidden');
+            generateOutlineButton.disabled = true;
+            generateOutlineButton.innerHTML = '<div class="loader mx-auto" style="width:20px; height:20px; border-width:3px;"></div> Generating...';
+
+            const bookTitle = outlineBookTitleInput.value.trim();
+            const genre = outlineGenreInput.value.trim();
+            const premise = outlinePremiseInput.value.trim();
+
+            const fullPrompt = 'You are an AI assistant helping to outline a book. Based on the following details, please generate a list of potential chapter titles and a brief 1-2 sentence summary for each chapter. Aim for a reasonable number of chapters for a typical book in the specified genre (e.g., 10-20 chapters for a novel, or a logical structure for non-fiction).\n' +
+                'Ensure each chapter summary is concise and clearly indicates the chapter\'s main focus or progression.\n' +
+                'Do not include any introductory phrases like "Here is an outline:" or "Okay, here\'s a possible outline:". Just provide the chapter list directly.\n\n' +
+                'Book Title: ' + bookTitle + '\n' +
+                'Genre: ' + genre + '\n' +
+                'Book Premise: ' + premise + '\n\n' +
+                'Format the output clearly, for example:\n' +
+                'Chapter 1: [Title]\n' +
+                'Summary: [Summary]\n\n' +
+                'Chapter 2: [Title]\n' +
+                'Summary: [Summary]\n' +
+                '...and so on.\n\n' +
+                'Begin the book outline now:';
+
+            try {
+                const generatedText = await callGeminiAPI(fullPrompt);
+                outlineDisplay.textContent = generatedText.trim();
+            } catch (error) {
+                console.error('Error generating outline:', error);
+                outlineDisplay.textContent = 'An error occurred while generating the outline. Please try again.';
+                outlineMessageArea.textContent = `Error: ${error.message}`;
+            } finally {
+                outlineLoadingIndicator.classList.add('hidden');
+                generateOutlineButton.disabled = false;
+                generateOutlineButton.textContent = '✨ Generate Book Outline';
+            }
+        }
+
+        // --- Chapter Content Generation ---
+        const chapterBookTitleInput = document.getElementById('chapterBookTitle');
+        const chapterTitleInput = document.getElementById('chapterTitle');
+        const chapterContextInput = document.getElementById('chapterContext');
+        const chapterPromptInput = document.getElementById('chapterPrompt');
+        const generateChapterButton = document.getElementById('generateChapterButton');
+        const chapterLoadingIndicator = document.getElementById('chapterLoadingIndicator');
+        const chapterMessageArea = document.getElementById('chapterMessageArea');
+        const snippetDisplay = document.getElementById('snippetDisplay');
+        const copySnippetButton = document.getElementById('copySnippetButton');
+        const copySnippetMessage = document.getElementById('copySnippetMessage');
+        const elaborationSection = document.getElementById('elaborationSection');
+
+        generateChapterButton.addEventListener('click', generateChapterContent);
+        copySnippetButton.addEventListener('click', copySnippetToClipboard);
+
+        async function generateChapterContent() {
+            chapterMessageArea.textContent = '';
+            snippetDisplay.textContent = 'Generating your chapter content...';
+            copySnippetButton.classList.add('hidden');
+            elaborationSection.classList.add('hidden');
+            copySnippetMessage.textContent = '';
+
+            if (!chapterTitleInput.value.trim() || !chapterPromptInput.value.trim()) {
+                chapterMessageArea.textContent = 'Please fill in Chapter Title and Detailed Chapter Prompt.';
+                snippetDisplay.textContent = 'Your AI-generated chapter content will appear here...';
+                return;
+            }
+
+            chapterLoadingIndicator.classList.remove('hidden');
+            generateChapterButton.disabled = true;
+            generateChapterButton.innerHTML = '<div class="loader mx-auto" style="width:20px; height:20px; border-width:3px;"></div> Generating...';
+
+            const bookTitle = chapterBookTitleInput.value.trim() || outlineBookTitleInput.value.trim();
+            const bookPremise = outlinePremiseInput.value.trim();
+            const chapterTitle = chapterTitleInput.value.trim();
+            const chapterContext = chapterContextInput.value.trim();
+            const chapterPrompt = chapterPromptInput.value.trim();
+
+            const fullPrompt = 'You are an AI writing assistant helping to draft a book. Your task is to write an engaging snippet (approximately 200-400 words) for a specific chapter.\n' +
+                'This snippet should fit the context of the overall book and the chapter\'s focus.\n' +
+                'Do not include any introductory phrases like "Here is the snippet:" or "Okay, here\'s the content:". Just provide the chapter text directly.\n\n' +
+                'Overall Book Premise (for context): ' + (bookPremise || 'Not specified') + '\n' +
+                'Book Title (for context): ' + (bookTitle || 'Not specified') + '\n' +
+                'Current Chapter Title: ' + chapterTitle + '\n' +
+                'Current Chapter\'s Role / Summary (from outline, if available): ' + (chapterContext || 'Not specified') + '\n' +
+                'Specific Instructions for this Snippet (key events, characters, dialogue, tone, details to include, etc.): ' + chapterPrompt + '\n\n' +
+                'Begin the chapter snippet now:';
+
+            try {
+                const generatedText = await callGeminiAPI(fullPrompt);
+                snippetDisplay.textContent = generatedText.trim();
+                if (hasActualContent(snippetDisplay)) {
+                    copySnippetButton.classList.remove('hidden');
+                    elaborationSection.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Error generating chapter content:', error);
+                snippetDisplay.textContent = 'An error occurred while generating chapter content. Please try again.';
+                chapterMessageArea.textContent = `Error: ${error.message}`;
+            } finally {
+                chapterLoadingIndicator.classList.add('hidden');
+                generateChapterButton.disabled = false;
+                generateChapterButton.textContent = '✨ Generate Chapter Content';
+            }
+        }
+        
+        // --- Suggest Plot Ideas ---
+        const suggestPlotIdeasButton = document.getElementById('suggestPlotIdeasButton');
+        const plotIdeasLoadingIndicator = document.getElementById('plotIdeasLoadingIndicator');
+        const plotIdeasMessageArea = document.getElementById('plotIdeasMessageArea');
+        const plotIdeasDisplay = document.getElementById('plotIdeasDisplay');
+
+        suggestPlotIdeasButton.addEventListener('click', suggestPlotIdeas);
+
+        async function suggestPlotIdeas() {
+            plotIdeasMessageArea.textContent = '';
+            plotIdeasDisplay.textContent = 'Generating plot ideas...';
+            plotIdeasDisplay.classList.remove('hidden'); 
+
+            const bookTitle = chapterBookTitleInput.value.trim() || outlineBookTitleInput.value.trim();
+            const genre = outlineGenreInput.value.trim();
+            const premise = outlinePremiseInput.value.trim();
+            const currentChapterTitle = chapterTitleInput.value.trim();
+            const currentChapterContext = chapterContextInput.value.trim();
+            const currentChapterPrompt = chapterPromptInput.value.trim();
+
+            if (!currentChapterPrompt && !currentChapterContext && !currentChapterTitle) {
+                 plotIdeasMessageArea.textContent = 'Please provide some chapter details (title, summary, or prompt) for better suggestions.';
+                 plotIdeasDisplay.textContent = 'AI-suggested plot ideas will appear here...';
+                 return;
+            }
+
+            plotIdeasLoadingIndicator.classList.remove('hidden');
+            suggestPlotIdeasButton.disabled = true;
+            suggestPlotIdeasButton.innerHTML = '<div class="loader mx-auto" style="width:20px; height:20px; border-width:3px;"></div> Suggesting...';
+
+            const fullPrompt = 'You are an AI assistant for authors.\n' +
+                'For the book titled "' + (bookTitle || 'Untitled Book') + '" (Genre: ' + (genre || 'Not specified') + ', Premise: ' + (premise || 'Not specified') + '), I am currently working on a chapter.\n' +
+                'Chapter Title (if any): ' + (currentChapterTitle || 'Not specified') + '\n' +
+                'Chapter Summary/Context (if any): ' + (currentChapterContext || 'Not specified') + '\n' +
+                'Current Writing Focus/Prompt for this chapter/scene (if any): ' + (currentChapterPrompt || 'General chapter development') + '\n\n' +
+                'Based on this information, please suggest 2-3 distinct and creative plot ideas, twists, or unexpected developments that could occur in or stem from this chapter or scene.\n' +
+                'Keep each suggestion concise (2-3 sentences each) and clearly separated (e.g., using a blank line or numbering).\n' +
+                'Do not include any introductory phrases like "Here are some ideas:". Just provide the suggestions directly.';
+            
+            try {
+                const generatedText = await callGeminiAPI(fullPrompt);
+                plotIdeasDisplay.textContent = generatedText.trim();
+            } catch (error) {
+                console.error('Error suggesting plot ideas:', error);
+                plotIdeasDisplay.textContent = 'An error occurred while suggesting plot ideas. Please try again.';
+                plotIdeasMessageArea.textContent = `Error: ${error.message}`;
+            } finally {
+                plotIdeasLoadingIndicator.classList.add('hidden');
+                suggestPlotIdeasButton.disabled = false;
+                suggestPlotIdeasButton.textContent = '✨ Suggest Plot Ideas/Twists';
+            }
+        }
+
+        // --- Elaborate on Snippet ---
+        const elaborationPromptInput = document.getElementById('elaborationPromptInput');
+        const elaborateSnippetButton = document.getElementById('elaborateSnippetButton');
+        const elaborateLoadingIndicator = document.getElementById('elaborateLoadingIndicator');
+        const elaborateMessageArea = document.getElementById('elaborateMessageArea');
+
+        elaborateSnippetButton.addEventListener('click', elaborateSnippet);
+
+        async function elaborateSnippet() {
+            elaborateMessageArea.textContent = '';
+            const currentSnippet = snippetDisplay.textContent;
+            const elaborationInstruction = elaborationPromptInput.value.trim();
+
+            if (!hasActualContent(snippetDisplay)) {
+                elaborateMessageArea.textContent = 'There is no snippet to elaborate on. Please generate a chapter snippet first.';
+                return;
+            }
+            if (!elaborationInstruction) {
+                elaborateMessageArea.textContent = 'Please provide instructions on how to elaborate (e.g., "add more dialogue").';
+                return;
+            }
+
+            elaborateLoadingIndicator.classList.remove('hidden');
+            elaborateSnippetButton.disabled = true;
+            elaborateSnippetButton.innerHTML = '<div class="loader mx-auto" style="width:20px; height:20px; border-width:3px;"></div> Elaborating...';
+
+            if (!hasActualContent(snippetDisplay)) {
+                 elaborateMessageArea.textContent = 'Cannot elaborate on placeholder text. Please ensure a valid snippet is present.';
+                 elaborateLoadingIndicator.classList.add('hidden');
+                 elaborateSnippetButton.disabled = false;
+                 elaborateSnippetButton.textContent = '✨ Elaborate on Snippet';
+                 return;
+            }
+            
+            const fullPrompt = 'You are an AI writing assistant. Take the following text snippet from a book and elaborate on it based on the user\'s request.\n' +
+                'Original Snippet:\n' +
+                '---\n' +
+                currentSnippet + '\n' +
+                '---\n' +
+                'User\'s Elaboration Request: ' + elaborationInstruction + '\n\n' +
+                'Rewrite or expand the original snippet to incorporate this request. Aim to add approximately 100-200 words of new or modified content, seamlessly integrated. Maintain the original tone, style, and characters.\n' +
+                'Do not include any introductory phrases like "Here is the elaborated snippet:" or "Okay, here\'s the revised text:". Just provide the revised text directly.';
+
+            try {
+                snippetDisplay.textContent = 'Elaborating on the snippet...'; 
+                const generatedText = await callGeminiAPI(fullPrompt);
+                snippetDisplay.textContent = generatedText.trim();
+                if (hasActualContent(snippetDisplay)) {
+                    copySnippetButton.classList.remove('hidden');
+                    elaborationSection.classList.remove('hidden');
+                } else { 
+                    copySnippetButton.classList.add('hidden');
+                }
+
+            } catch (error) {
+                console.error('Error elaborating on snippet:', error);
+                snippetDisplay.textContent = currentSnippet; 
+                elaborateMessageArea.textContent = `Error: ${error.message}`; 
+            } finally {
+                elaborateLoadingIndicator.classList.add('hidden');
+                elaborateSnippetButton.disabled = false;
+                elaborateSnippetButton.textContent = '✨ Elaborate on Snippet';
+            }
+        }
+
+
+        // --- Shared Gemini API Call Function ---
+        async function callGeminiAPI(promptText) {
+            let chatHistory = [{ role: "user", parts: [{ text: promptText }] }];
+            const payload = { contents: chatHistory };
+            const apiKey = ""; // Empty string for Canvas environment
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: { message: "Unknown API error" } }));
+                console.error('API Error Details:', errorData);
+                throw new Error(`API request failed: ${response.status} ${errorData?.error?.message || 'Please check console for API error details.'}`);
+            }
+
+            const result = await response.json();
+            
+            if (result.candidates && result.candidates.length > 0 &&
+                result.candidates[0].content && result.candidates[0].content.parts &&
+                result.candidates[0].content.parts.length > 0) {
+                return result.candidates[0].content.parts[0].text;
+            } else {
+                console.error('Unexpected API response structure:', result);
+                if (result.promptFeedback && result.promptFeedback.blockReason) {
+                     throw new Error(`AI response blocked: ${result.promptFeedback.blockReason}. ${result.promptFeedback.blockReasonMessage || ''}`);
+                }
+                throw new Error('Failed to parse AI response. The response was empty, malformed, or potentially blocked. Check console.');
+            }
+        }
+
+        function copySnippetToClipboard() {
+            const textToCopy = snippetDisplay.textContent;
+            if (!hasActualContent(snippetDisplay)) {
+                copySnippetMessage.textContent = 'Nothing to copy.';
+                copySnippetMessage.className = 'text-center text-red-400 mt-1';
+                setTimeout(() => { copySnippetMessage.textContent = ''; }, 3000);
+                return;
+            }
+
+            const textArea = document.createElement("textarea");
+            textArea.value = textToCopy;
+            textArea.style.position = "fixed"; 
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.opacity = "0"; 
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    copySnippetMessage.textContent = 'Snippet copied to clipboard!';
+                    copySnippetMessage.className = 'text-center text-green-400 mt-1';
+                } else {
+                    copySnippetMessage.textContent = 'Failed to copy snippet.';
+                    copySnippetMessage.className = 'text-center text-red-400 mt-1';
+                }
+            } catch (err) {
+                console.error('Fallback: Oops, unable to copy', err);
+                copySnippetMessage.textContent = 'Failed to copy snippet. See console.';
+                copySnippetMessage.className = 'text-center text-red-400 mt-1';
+            }
+            document.body.removeChild(textArea);
+            setTimeout(() => { copySnippetMessage.textContent = ''; }, 3000);
+        }
+
+        // --- Manuscript Area ---
+        const manuscriptArea = document.getElementById('manuscriptArea');
+
+    </script>
+</body>
+</html>
